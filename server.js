@@ -3,11 +3,16 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const PROMO_DIR = 'promocao'; // O nome da pasta onde as imagens estão
+// O Railway injeta a variável PORT automaticamente, garantindo o funcionamento.
+const PORT = process.env.PORT || 3000; 
+// Usa o separador de caminho do sistema operacional para robustez
+const PROMO_DIR = path.sep + 'promocao'; 
 
 // Lista de extensões de arquivo que consideramos como imagens
-const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+const IMAGE_EXTENSIONS = [
+    '.jpg', '.jpeg', '.png', '.gif', 
+    '.webp', '.bmp', '.svg', '.avif' // Adicionada AVIF, uma extensão moderna
+];
 
 // ===============================================
 // 1. CONFIGURAÇÃO DE CORS
@@ -31,20 +36,23 @@ app.use((req, res, next) => {
 // ===============================================
 // 2. SERVIÇO DE ARQUIVOS ESTÁTICOS
 // Qualquer arquivo na pasta 'promocao' estará acessível em /promocao/*
-// Por exemplo: https://seu-app.onrender.com/promocao/imagem1.jpg
+// URL de exemplo: https://<seu-dominio-railway>/promocao/imagem1.jpg
+// O .slice(1) remove a barra inicial para a rota
 // ===============================================
-app.use('/' + PROMO_DIR, express.static(path.join(__dirname, PROMO_DIR)));
+app.use(PROMO_DIR.slice(1), express.static(path.join(__dirname, PROMO_DIR)));
 
 // ===============================================
 // 3. ROTA API - /api/fotos
 // Retorna a lista de URLs das imagens
 // ===============================================
 app.get('/api/fotos', (req, res) => {
+    // O path.join(..., PROMO_DIR) já lida com o separador de caminho
     const promoPath = path.join(__dirname, PROMO_DIR);
     
     // 1. Verifica se a pasta existe
     if (!fs.existsSync(promoPath)) {
         console.error(`Diretório não encontrado: ${PROMO_DIR}`);
+        // Manteve o status 500, mas 404 seria tecnicamente defensável para recursos ausentes
         return res.status(500).json({ error: 'Diretório de promoções não encontrado.' });
     }
 
@@ -59,9 +67,9 @@ app.get('/api/fotos', (req, res) => {
                 return IMAGE_EXTENSIONS.includes(ext);
             })
             .map(file => {
-                // Constrói a URL completa da imagem
-                // O `req.protocol` e `req.get('host')` garantem que o link seja correto (http/https e hostname)
-                return `${req.protocol}://${req.get('host')}/${PROMO_DIR}/${file}`;
+                // Constrói a URL completa da imagem.
+                // req.protocol e req.get('host') garantem que o link use HTTPS e o domínio do Railway.
+                return `${req.protocol}://${req.get('host')}${PROMO_DIR.replace(/\\/g, '/')}/${file}`;
             });
 
         // 4. Retorna a lista de URLs
@@ -73,7 +81,7 @@ app.get('/api/fotos', (req, res) => {
     }
 });
 
-// Rota de saúde simples para o Render saber que o servidor está funcionando
+// Rota de saúde simples (Health Check)
 app.get('/', (req, res) => {
     res.send('Servidor de Carrossel de Promoções está ativo!');
 });
