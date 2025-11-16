@@ -4,7 +4,7 @@ const path = require('path');
 
 const app = express();
 // O Railway injeta a variável PORT automaticamente, garantindo o funcionamento.
-const PORT = process.env.PORT || 3000; 
+const PORT = process.env.PORT || 8080; 
 // Usa o separador de caminho do sistema operacional para robustez
 const PROMO_DIR = path.sep + 'promocao'; 
 
