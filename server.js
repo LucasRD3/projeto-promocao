@@ -4,15 +4,17 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors'); 
-const cron = require('node-cron'); // <--- NOVO: Importar node-cron
+const cron = require('node-cron'); 
 
 const app = express();
-const port = 3000; 
+// ALTERAÇÃO AQUI: Usa a variável de ambiente PORT (do Render) ou 3000 localmente.
+const port = process.env.PORT || 3000; 
 
 // Define o caminho absoluto para a pasta 'promocao'
 const promocoesPath = path.join(__dirname, 'promocao');
 
 // USAR O CORS ANTES DE TODAS AS ROTAS
+// ATENÇÃO: Em produção, configure o CORS para o seu domínio específico, não apenas app.use(cors());
 app.use(cors()); 
 
 // Configura a pasta 'promocao' como um diretório estático.
@@ -61,17 +63,17 @@ function deletePromotionImages() {
     });
 }
 
-// NOVO: Agendar a tarefa para rodar todos os dias às 22:50 (50 22 * * *)
-// O formato é: minuto, hora, dia_do_mês, mês, dia_da_semana
+// Agendar a tarefa para rodar todos os dias às 22:50 (50 22 * * *)
+// ATENÇÃO: O Render utiliza UTC por padrão. 22:50 UTC pode ser um horário diferente no Brasil.
+// Recomenda-se adicionar o timezone para garantir o horário desejado.
 cron.schedule('50 22 * * *', () => {
     deletePromotionImages();
 }, {
     scheduled: true,
-    // O fuso horário utilizado será o do servidor onde o Node.js está rodando.
-    // Para garantir a precisão, você pode adicionar a opção: timezone: "America/Sao_Paulo"
+    timezone: "America/Sao_Paulo" // Exemplo: para rodar 22:50 no fuso de São Paulo
 });
 
-console.log('Agendador de exclusão ativado para 22:50 todos os dias.');
+console.log('Agendador de exclusão ativado para 22:50 todos os dias (usando o fuso horário configurado se aplicável).');
 
 // =========================================================
 // ROTAS EXISTENTES
@@ -91,9 +93,9 @@ app.get('/api/fotos', (req, res) => {
             return /\.(jpg|jpeg|png|gif)$/i.test(file);
         });
         
-        // Retorna a lista de URLs completas para as fotos
+        // ALTERAÇÃO AQUI: Retorna caminhos relativos.
         const fileUrls = imageFiles.map(file => {
-            return `http://localhost:${port}/promocao/${file}`;
+            return `/promocao/${file}`; 
         });
 
         res.json(fileUrls);
@@ -107,6 +109,6 @@ app.get('/', (req, res) => {
 
 // Inicia o servidor
 app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
-    console.log(`As fotos estão disponíveis em: http://localhost:${port}/promocao/`);
+    console.log(`Servidor rodando na porta ${port}`);
+    console.log(`As fotos estão disponíveis em: /promocao/`);
 });
