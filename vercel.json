@@ -8,6 +8,10 @@
   ],
   "routes": [
     {
+      "src": "/promocao/(.*)",
+      "dest": "/promocao/$1"
+    },
+    {
       "src": "/.*",
       "dest": "server.js"
     }

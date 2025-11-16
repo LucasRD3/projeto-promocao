@@ -4,6 +4,7 @@ const path = require('path');
 
 const app = express();
 // O Railway injeta a variável PORT automaticamente, garantindo o funcionamento.
+// No Vercel, o builder @vercel/node lida com isso.
 const PORT = process.env.PORT || 8080; 
 // Usa o separador de caminho do sistema operacional para robustez
 const PROMO_DIR = path.sep + 'promocao'; 
@@ -11,7 +12,7 @@ const PROMO_DIR = path.sep + 'promocao';
 // Lista de extensões de arquivo que consideramos como imagens
 const IMAGE_EXTENSIONS = [
     '.jpg', '.jpeg', '.png', '.gif', 
-    '.webp', '.bmp', '.svg', '.avif' // Adicionada AVIF, uma extensão moderna
+    '.webp', '.bmp', '.svg', '.avif' 
 ];
 
 // ===============================================
@@ -34,12 +35,12 @@ app.use((req, res, next) => {
 });
 
 // ===============================================
-// 2. SERVIÇO DE ARQUIVOS ESTÁTICOS
-// Qualquer arquivo na pasta 'promocao' estará acessível em /promocao/*
-// URL de exemplo: https://<seu-dominio-railway>/promocao/imagem1.jpg
-// O .slice(1) remove a barra inicial para a rota
+// 2. SERVIÇO DE ARQUIVOS ESTÁTICOS (REMOVIDO PARA VERCEL)
+// O serviço de arquivos estáticos para /promocao/* agora é configurado
+// e tratado diretamente pelo vercel.json para melhor desempenho.
 // ===============================================
-app.use(PROMO_DIR.slice(1), express.static(path.join(__dirname, PROMO_DIR)));
+// app.use(PROMO_DIR.slice(1), express.static(path.join(__dirname, PROMO_DIR)));
+
 
 // ===============================================
 // 3. ROTA API - /api/fotos
@@ -52,7 +53,6 @@ app.get('/api/fotos', (req, res) => {
     // 1. Verifica se a pasta existe
     if (!fs.existsSync(promoPath)) {
         console.error(`Diretório não encontrado: ${PROMO_DIR}`);
-        // Manteve o status 500, mas 404 seria tecnicamente defensável para recursos ausentes
         return res.status(500).json({ error: 'Diretório de promoções não encontrado.' });
     }
 
@@ -68,7 +68,7 @@ app.get('/api/fotos', (req, res) => {
             })
             .map(file => {
                 // Constrói a URL completa da imagem.
-                // req.protocol e req.get('host') garantem que o link use HTTPS e o domínio do Railway.
+                // Esta URL usa /promocao/ que agora será resolvida pelo Vercel.json
                 return `${req.protocol}://${req.get('host')}${PROMO_DIR.replace(/\\/g, '/')}/${file}`;
             });
 
@@ -86,7 +86,12 @@ app.get('/', (req, res) => {
     res.send('Servidor de Carrossel de Promoções está ativo!');
 });
 
-// Inicializa o servidor
+// Inicializa o servidor (mantido para testes locais)
 app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
+// ===============================================
+// EXPORTAÇÃO PARA VERCEL: Essencial para o deploy
+// ===============================================
+module.exports = app;
